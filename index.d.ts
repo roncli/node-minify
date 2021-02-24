@@ -9,7 +9,7 @@ declare module Minify {
             path: string
             contentType: string
         }
-        disable?: boolean
+        disableTagCombining?: boolean
         wwwRoot: string
         jsRoot: string
         cssRoot: string

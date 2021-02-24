@@ -220,7 +220,7 @@ class Minify {
             throw new Error("node-minify is not setup properly.  Please call the setup function and provide the wwwRoot, jsRoot, and cssRoot options.  See README for details.");
         }
 
-        if (Minify.options.disable) {
+        if (Minify.options.disableTagCombining) {
             switch (type) {
                 case "js":
                     return files.map((f) => `<script src="${f}"></script>`).join("");
