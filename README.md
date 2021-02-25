@@ -107,5 +107,8 @@ The output of this function varies depending on how you set `disableTagCombining
 
 ## Version history
 
+### 1.0.1 - 2/25/2021
+* Fix typings.
+
 ### 1.0.0 - 2/24/2021
 * Initial version.
