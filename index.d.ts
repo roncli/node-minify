@@ -6,8 +6,10 @@ declare module Minify {
             prefix?: string
         },
         redirects?: {
-            path: string
-            contentType: string
+            [x: string]: {
+                path: string
+                contentType: string
+            }
         }
         disableTagCombining?: boolean
         wwwRoot: string
