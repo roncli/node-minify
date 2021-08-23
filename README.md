@@ -59,7 +59,10 @@ Minify.setup({
     redirects: {
         "/js/jquery.min.js": {
             path: path.join(__dirname, "node_modules/jquery/dist/jquery.min.js"),
-            contentType: "js"
+            contentType: "js",
+            replace: {
+                "find": "replace"
+            }
         },
         "/js/bootstrap.min.css": {
             path: path.join(__dirname, "node_modules/bootstrap/dist/css/bootstrap.min.css"),
@@ -106,6 +109,9 @@ res.status(200).send(`
 The output of this function varies depending on how you set `disableTagCombining` in the options.  By default, tag combining is enabled, and you will get a single `<link>` or `<script>` tag with a single URL that will serve the combined list of files.  If tag combining is disabled, then you will get one `<link>` or `<script`> tag for each file listed.  Setting `disableTagCombining` to `true` is a good way to debug your application when you need uncombined and unminifed versions of the files, or you suspect one of the files you are attempting to combine and minify is not loading correctly.
 
 ## Version history
+
+### 1.1.0 - 8/23/2021
+* Add the ability to do a replace on part of a file.
 
 ### 1.0.1 - 2/25/2021
 * Fix typings.
