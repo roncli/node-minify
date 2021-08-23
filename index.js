@@ -96,7 +96,15 @@ class Minify {
                         }
                     }
 
-                    str = `${str}${await fs.readFile(filePath, "utf8")}`;
+                    let data = await fs.readFile(filePath, "utf8");
+
+                    if (redirect && redirect.replace) {
+                        for (const find of Object.keys(redirect.replace)) {
+                            data = data.split(find).join(redirect.replace[find]);
+                        }
+                    }
+
+                    str = `${str}${data}`;
                 }
             } catch (err) {
                 if (err.code === "ENOENT") {
@@ -163,8 +171,10 @@ class Minify {
 
             try {
                 code = await files.reduce(async (prev, cur) => {
-                    const obj = await prev,
-                        redirect = Minify.options.redirects && Minify.options.redirects[cur] || void 0;
+                    /** @type {Object<string, string>} */
+                    const obj = await prev;
+
+                    const redirect = Minify.options.redirects && Minify.options.redirects[cur] || void 0;
 
                     let filePath;
 
@@ -179,6 +189,12 @@ class Minify {
                     }
 
                     obj[cur] = await fs.readFile(filePath, "utf8");
+
+                    if (redirect && redirect.replace) {
+                        for (const find of Object.keys(redirect.replace)) {
+                            obj[cur] = obj[cur].split(find).join(redirect.replace[find]);
+                        }
+                    }
 
                     return obj;
                 }, Promise.resolve({}));

@@ -9,6 +9,9 @@ declare module Minify {
             [x: string]: {
                 path: string
                 contentType: string
+                replace?: {
+                    [x: string]: string
+                }
             }
         }
         disableTagCombining?: boolean
