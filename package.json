@@ -19,13 +19,13 @@
     },
     "dependencies": {
         "csso": "4.2.0",
-        "terser": "5.8.0"
+        "terser": "5.9.0"
     },
     "devDependencies": {
         "@babel/core": "7.15.5",
-        "@babel/eslint-parser": "7.15.4",
+        "@babel/eslint-parser": "7.15.7",
         "@types/express": "4.17.13",
-        "@types/node": "16.9.1",
+        "@types/node": "16.10.2",
         "express": "4.17.1"
     },
     "engines": {
