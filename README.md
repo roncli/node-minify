@@ -110,11 +110,14 @@ The output of this function varies depending on how you set `disableTagCombining
 
 ## Version history
 
-### 1.1.0 - 8/23/2021
+### v1.1.1 - 10/1/2021
+* Package updates.
+
+### v1.1.0 - 8/23/2021
 * Add the ability to do a replace on part of a file.
 
-### 1.0.1 - 2/25/2021
+### v1.0.1 - 2/25/2021
 * Fix typings.
 
-### 1.0.0 - 2/24/2021
+### v1.0.0 - 2/24/2021
 * Initial version.
