@@ -17,7 +17,7 @@ To add node-minify to your Express application, run the setup function and then 
 
 ```javascript
 const express = require("express");
-const Minify = require("node-minify");
+const Minify = require("@roncli/node-minify");
 
 const app = express();
 
