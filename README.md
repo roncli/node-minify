@@ -7,7 +7,7 @@ Since this is largely used for personal projects, this is not an npm package.  N
 ```json
 {
     "dependencies": {
-        "node-database": "roncli/node-minify#v1.0.0"
+        "@roncli/node-minify": "roncli/node-minify#v1.0.0"
     }
 }
 ```
