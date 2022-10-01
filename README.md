@@ -7,7 +7,7 @@ Since this is largely used for personal projects, this is not an npm package.  N
 ```json
 {
     "dependencies": {
-        "@roncli/node-minify": "roncli/node-minify#v1.1.9"
+        "@roncli/node-minify": "roncli/node-minify#v1.1.10"
     }
 }
 ```
@@ -109,6 +109,9 @@ res.status(200).send(`
 The output of this function varies depending on how you set `disableTagCombining` in the options.  By default, tag combining is enabled, and you will get a single `<link>` or `<script>` tag with a single URL that will serve the combined list of files.  If tag combining is disabled, then you will get one `<link>` or `<script`> tag for each file listed.  Setting `disableTagCombining` to `true` is a good way to debug your application when you need uncombined and unminifed versions of the files, or you suspect one of the files you are attempting to combine and minify is not loading correctly.
 
 ## Version history
+
+### v1.1.10 - 10/1/2022
+* Package updates.
 
 ### v1.1.9 - 7/18/2022
 * Package updates.
