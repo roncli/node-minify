@@ -82,6 +82,10 @@ class Minify {
 
             try {
                 for (const file of files) {
+                    if (!file.startsWith("/")) {
+                        return next();
+                    }
+
                     const redirect = Minify.options.redirects && Minify.options.redirects[file] || void 0;
 
                     let filePath;
@@ -167,37 +171,36 @@ class Minify {
 
         try {
             /** @type {Object<string, string>} */
-            let code;
+            const code = {};
 
             try {
-                code = await files.reduce(async (prev, cur) => {
-                    /** @type {Object<string, string>} */
-                    const obj = await prev;
+                for (const file of files) {
+                    if (!file.startsWith("/")) {
+                        return next();
+                    }
 
-                    const redirect = Minify.options.redirects && Minify.options.redirects[cur] || void 0;
+                    const redirect = Minify.options.redirects && Minify.options.redirects[file] || void 0;
 
                     let filePath;
 
                     if (redirect) {
                         filePath = redirect.path;
                     } else {
-                        filePath = path.join(Minify.options.wwwRoot, cur);
+                        filePath = path.join(Minify.options.wwwRoot, file);
 
                         if (!filePath.startsWith(Minify.options.wwwRoot)) {
                             return next();
                         }
                     }
 
-                    obj[cur] = await fs.readFile(filePath, "utf8");
+                    code[file] = await fs.readFile(filePath, "utf8");
 
                     if (redirect && redirect.replace) {
                         for (const find of Object.keys(redirect.replace)) {
-                            obj[cur] = obj[cur].split(find).join(redirect.replace[find]);
+                            code[file] = code[file].split(find).join(redirect.replace[find]);
                         }
                     }
-
-                    return obj;
-                }, Promise.resolve({}));
+                }
             } catch (err) {
                 if (err.code === "ENOENT") {
                     return next();
