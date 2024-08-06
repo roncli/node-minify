@@ -110,6 +110,9 @@ The output of this function varies depending on how you set `disableTagCombining
 
 ## Version history
 
+### v1.2.3 - 8/6/2024
+* Package updates.
+
 ### v1.2.2 - 7/10/2024
 * Package updates.
 
