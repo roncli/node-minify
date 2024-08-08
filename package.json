@@ -19,7 +19,7 @@
     },
     "dependencies": {
         "csso": "5.0.5",
-        "terser": "5.31.4"
+        "terser": "5.31.5"
     },
     "devDependencies": {
         "@babel/core": "7.25.2",
