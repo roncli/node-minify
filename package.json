@@ -23,7 +23,7 @@
     },
     "devDependencies": {
         "@babel/core": "7.25.9",
-        "@babel/eslint-parser": "7.25.8",
+        "@babel/eslint-parser": "7.25.9",
         "@types/express": "5.0.0",
         "@types/node": "22.7.9",
         "express": "4.21.1"
