@@ -25,7 +25,7 @@
         "@babel/core": "7.26.8",
         "@babel/eslint-parser": "7.26.8",
         "@types/express": "5.0.0",
-        "@types/node": "22.13.1",
+        "@types/node": "22.13.2",
         "express": "4.21.2"
     },
     "engines": {
