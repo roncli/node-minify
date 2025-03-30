@@ -5,47 +5,47 @@
  */
 
 const csso = require("csso"),
-    fs = require("fs").promises,
+    fs = require("fs/promises"),
     path = require("path"),
     terser = require("terser");
 
-const nameCache = {};
-
-//  #   #    #             #      ##
-//  #   #                        #  #
-//  ## ##   ##    # ##    ##     #     #   #
-//  # # #    #    ##  #    #    ####   #   #
-//  #   #    #    #   #    #     #     #  ##
-//  #   #    #    #   #    #     #      ## #
-//  #   #   ###   #   #   ###    #         #
-//                                     #   #
-//                                      ###
+// MARK: Minify
 /**
 * Minifies and combines the specified files.
 */
 class Minify {
-    //               #
-    //               #
-    //  ###    ##   ###   #  #  ###
-    // ##     # ##   #    #  #  #  #
-    //   ##   ##     #    #  #  #  #
-    // ###     ##     ##   ###  ###
-    //                          #
+    /** @type {Minify.Options} */
+    static #options = {
+        wwwRoot: void 0,
+        jsRoot: "/js/",
+        cssRoot: "/css/"
+    };
+
+    static #nameCache = {};
+
+    // MARK: static #validateSetup
+    /**
+     * Validates that the setup function has been called and that the options are valid.
+     * @returns {void}
+     * @throws {Error} If the options are not valid.
+     */
+    static #validateSetup() {
+        if (!Minify.#options || !Minify.#options.wwwRoot || !Minify.#options.jsRoot || !Minify.#options.cssRoot) {
+            throw new Error("node-minify is not setup properly. Please call the setup function and provide the wwwRoot, jsRoot, and cssRoot options. See README for details.");
+        }
+    }
+
+    // MARK: static setup
     /**
      * Sets up options for minification.
      * @param {Minify.Options} options The options to setup minification with.
      * @returns {void}
      */
     static setup(options) {
-        Minify.options = options;
+        Minify.#options = options;
     }
 
-    //                     #  #                 #  ##
-    //                     #  #                 #   #
-    //  ##    ###    ###   ####   ###  ###    ###   #     ##   ###
-    // #     ##     ##     #  #  #  #  #  #  #  #   #    # ##  #  #
-    // #       ##     ##   #  #  # ##  #  #  #  #   #    ##    #
-    //  ##   ###    ###    #  #   # #  #  #   ###  ###    ##   #
+    // MARK: static async cssHandler
     /**
      * The Express handler that returns the minified version of the CSS file passed.
      * @param {Express.Request} req The request.
@@ -54,19 +54,17 @@ class Minify {
      * @returns {Promise<void>} A promise that resolves when the handler has been run.
      */
     static async cssHandler(req, res, next) {
-        if (!Minify.options || !Minify.options.wwwRoot || !Minify.options.jsRoot || !Minify.options.cssRoot) {
-            throw new Error("node-minify is not setup properly.  Please call the setup function and provide the wwwRoot, jsRoot, and cssRoot options.  See README for details.");
-        }
+        Minify.#validateSetup();
 
         if (!req.query.files || req.query.files === "" || typeof req.query.files !== "string") {
             return next();
         }
 
-        const key = `${Minify.options.caching && Minify.options.caching.prefix && `${Minify.options.caching.prefix}:` || ""}minify:${req.query.files}`;
+        const key = `${Minify.#options.caching && Minify.#options.caching.prefix && `${Minify.#options.caching.prefix}:` || ""}minify:${req.query.files}`;
 
         let cache;
-        if (Minify.options.caching) {
-            cache = await Minify.options.caching.get(key);
+        if (Minify.#options.caching) {
+            cache = await Minify.#options.caching.get(key);
 
             if (cache) {
                 res.status(200).type("css").send(cache);
@@ -86,16 +84,16 @@ class Minify {
                         return next();
                     }
 
-                    const redirect = Minify.options.redirects && Minify.options.redirects[file] || void 0;
+                    const redirect = Minify.#options.redirects && Minify.#options.redirects[file] || void 0;
 
                     let filePath;
 
                     if (redirect) {
                         filePath = redirect.path;
                     } else {
-                        filePath = path.join(Minify.options.wwwRoot, file);
+                        filePath = path.join(Minify.#options.wwwRoot, file);
 
-                        if (!filePath.startsWith(Minify.options.wwwRoot)) {
+                        if (!filePath.startsWith(Minify.#options.wwwRoot)) {
                             return next();
                         }
                     }
@@ -120,8 +118,8 @@ class Minify {
 
             const output = csso.minify(str);
 
-            if (Minify.options.caching) {
-                Minify.options.caching.set(key, output.css);
+            if (Minify.#options.caching) {
+                Minify.#options.caching.set(key, output.css);
             }
 
             res.status(200).type("css").send(output.css);
@@ -131,13 +129,7 @@ class Minify {
         }
     }
 
-    //   #          #  #                 #  ##
-    //              #  #                 #   #
-    //   #    ###   ####   ###  ###    ###   #     ##   ###
-    //   #   ##     #  #  #  #  #  #  #  #   #    # ##  #  #
-    //   #     ##   #  #  # ##  #  #  #  #   #    ##    #
-    // # #   ###    #  #   # #  #  #   ###  ###    ##   #
-    //  #
+    // MARK: static async jsHandler
     /**
      * The Express handler that returns the minified version of the JavaScript file passed.
      * @param {Express.Request} req The request.
@@ -146,19 +138,17 @@ class Minify {
      * @returns {Promise<void>} A promise that resolves when the handler has been run.
      */
     static async jsHandler(req, res, next) {
-        if (!Minify.options || !Minify.options.wwwRoot || !Minify.options.jsRoot || !Minify.options.cssRoot) {
-            throw new Error("node-minify is not setup properly.  Please call the setup function and provide the wwwRoot, jsRoot, and cssRoot options.  See README for details.");
-        }
+        Minify.#validateSetup();
 
         if (!req.query.files || req.query.files === "" || typeof req.query.files !== "string") {
             return next();
         }
 
-        const key = `${Minify.options.caching && Minify.options.caching.prefix && `${Minify.options.caching.prefix}:` || ""}minify:${req.query.files}`;
+        const key = `${Minify.#options.caching && Minify.#options.caching.prefix && `${Minify.#options.caching.prefix}:` || ""}minify:${req.query.files}`;
 
         let cache;
-        if (Minify.options.caching) {
-            cache = await Minify.options.caching.get(key);
+        if (Minify.#options.caching) {
+            cache = await Minify.#options.caching.get(key);
 
             if (cache) {
                 res.status(200).type("js").send(cache);
@@ -179,16 +169,16 @@ class Minify {
                         return next();
                     }
 
-                    const redirect = Minify.options.redirects && Minify.options.redirects[file] || void 0;
+                    const redirect = Minify.#options.redirects && Minify.#options.redirects[file] || void 0;
 
                     let filePath;
 
                     if (redirect) {
                         filePath = redirect.path;
                     } else {
-                        filePath = path.join(Minify.options.wwwRoot, file);
+                        filePath = path.join(Minify.#options.wwwRoot, file);
 
-                        if (!filePath.startsWith(Minify.options.wwwRoot)) {
+                        if (!filePath.startsWith(Minify.#options.wwwRoot)) {
                             return next();
                         }
                     }
@@ -209,10 +199,10 @@ class Minify {
                 return next(err);
             }
 
-            const output = await terser.minify(code, {nameCache});
+            const output = await terser.minify(code, {nameCache: Minify.#nameCache});
 
-            if (Minify.options.caching) {
-                Minify.options.caching.set(key, output.code);
+            if (Minify.#options.caching) {
+                Minify.#options.caching.set(key, output.code);
             }
 
             res.status(200).type("js").send(output.code);
@@ -222,12 +212,7 @@ class Minify {
         }
     }
 
-    //                   #      #
-    //                   #
-    //  ##    ##   # #   ###   ##    ###    ##
-    // #     #  #  ####  #  #   #    #  #  # ##
-    // #     #  #  #  #  #  #   #    #  #  ##
-    //  ##    ##   #  #  ###   ###   #  #   ##
+    // MARK: static combine
     /**
      * Provides the HTML needed to serve combined and minified files.
      * @param {string[]} files The list of filenames to combine.
@@ -235,11 +220,9 @@ class Minify {
      * @returns {string} The combined filename.
      */
     static combine(files, type) {
-        if (!Minify.options || !Minify.options.wwwRoot || !Minify.options.jsRoot || !Minify.options.cssRoot) {
-            throw new Error("node-minify is not setup properly.  Please call the setup function and provide the wwwRoot, jsRoot, and cssRoot options.  See README for details.");
-        }
+        Minify.#validateSetup();
 
-        if (Minify.options.disableTagCombining) {
+        if (Minify.#options.disableTagCombining) {
             switch (type) {
                 case "js":
                     return files.map((f) => `<script src="${f}"></script>`).join("");
@@ -251,21 +234,14 @@ class Minify {
         } else {
             switch (type) {
                 case "js":
-                    return `<script src="${Minify.options.jsRoot}?files=${files.join(",")}"></script>`;
+                    return `<script src="${Minify.#options.jsRoot}?files=${files.join(",")}"></script>`;
                 case "css":
-                    return `<link rel="stylesheet" href="${Minify.options.cssRoot}?files=${files.join(",")}" />`;
+                    return `<link rel="stylesheet" href="${Minify.#options.cssRoot}?files=${files.join(",")}" />`;
                 default:
                     return "";
             }
         }
     }
 }
-
-/** @type {Minify.Options} */
-Minify.options = {
-    wwwRoot: void 0,
-    jsRoot: "/js/",
-    cssRoot: "/css/"
-};
 
 module.exports = Minify;

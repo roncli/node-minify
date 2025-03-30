@@ -1,4 +1,4 @@
-declare module Minify {
+declare namespace Minify {
     type Options = {
         caching?: {
             get: (key: string) => any | Promise<any>
