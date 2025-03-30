@@ -222,25 +222,29 @@ class Minify {
     static combine(files, type) {
         Minify.#validateSetup();
 
+        let tags = "";
+
         if (Minify.#options.disableTagCombining) {
             switch (type) {
                 case "js":
-                    return files.map((f) => `<script src="${f}"></script>`).join("");
+                    tags = files.map((f) => `<script src="${f}"></script>`).join("");
+                    break;
                 case "css":
-                    return files.map((f) => `<link rel="stylesheet" href="${f}" />`).join("");
-                default:
-                    return "";
+                    tags = files.map((f) => `<link rel="stylesheet" href="${f}" />`).join("");
+                    break;
             }
         } else {
             switch (type) {
                 case "js":
-                    return `<script src="${Minify.#options.jsRoot}?files=${files.join(",")}"></script>`;
+                    tags = `<script src="${Minify.#options.jsRoot}?files=${files.join(",")}"></script>`;
+                    break;
                 case "css":
-                    return `<link rel="stylesheet" href="${Minify.#options.cssRoot}?files=${files.join(",")}" />`;
-                default:
-                    return "";
+                    tags = `<link rel="stylesheet" href="${Minify.#options.cssRoot}?files=${files.join(",")}" />`;
+                    break;
             }
         }
+
+        return tags;
     }
 }
 
