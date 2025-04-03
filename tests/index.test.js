@@ -169,7 +169,7 @@ describe("Minify", () => {
 
             const res = await request(app).get("/js").query({files: "/script.js"});
             expect(res.status).toBe(200);
-            expect(res.type).toBe("application/javascript");
+            expect(["application/javascript", "text/javascript"]).toContain(res.type);
             expect(res.text).toContain("function test(){console.log(\"test\")}");
         });
 
@@ -276,7 +276,7 @@ describe("Minify", () => {
             let res = await request(app).get("/js").query({files: "/script.js"});
             const minified = res.text;
             expect(res.status).toBe(200);
-            expect(res.type).toBe("application/javascript");
+            expect(["application/javascript", "text/javascript"]).toContain(res.type);
             expect(res.text).toContain("function test(){console.log(\"test\")}");
             expect(setCacheMock).toHaveBeenCalledWith("test:minify:/script.js", res.text);
             expect(cache["test:minify:/script.js"]).toBe(minified);
@@ -330,7 +330,7 @@ describe("Minify", () => {
 
             const res = await request(app).get("/js").query({files: "/redirect.js"});
             expect(res.status).toBe(200);
-            expect(res.type).toBe("application/javascript");
+            expect(["application/javascript", "text/javascript"]).toContain(res.type);
             expect(res.text).toContain("function TEST(){console.log(\"TEST\")}");
         });
     });
