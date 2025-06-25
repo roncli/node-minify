@@ -29,7 +29,7 @@
         "@types/node": "24.0.4",
         "express": "5.1.0",
         "eslint-plugin-jsdoc": "51.2.3",
-        "jest": "30.0.2",
+        "jest": "30.0.3",
         "supertest": "7.1.1"
     },
     "engines": {
