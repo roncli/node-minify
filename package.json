@@ -28,7 +28,7 @@
         "@types/jest": "30.0.0",
         "@types/node": "24.9.1",
         "express": "5.1.0",
-        "eslint-plugin-jsdoc": "61.1.5",
+        "eslint-plugin-jsdoc": "61.1.7",
         "jest": "30.0.5",
         "supertest": "7.1.4"
     },
