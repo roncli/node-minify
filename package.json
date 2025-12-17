@@ -19,7 +19,7 @@
     },
     "dependencies": {
         "csso": "5.0.5",
-        "terser": "5.39.2"
+        "terser": "5.44.1"
     },
     "devDependencies": {
         "@eslint/js": "9.39.2",
