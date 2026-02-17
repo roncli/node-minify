@@ -229,8 +229,8 @@ describe("Minify", () => {
         });
     });
 
-    // MARK: Caching
-    describe("Caching", () => {
+    // MARK: Caching With Prefix
+    describe("Caching With Prefix", () => {
         /** @type {{[x: string]: string}} */
         const cache = {};
 
@@ -298,6 +298,127 @@ describe("Minify", () => {
             expect(res.status).toBe(200);
             expect(res.text).toBe(minified);
             expect(getCacheMock).toHaveBeenCalledWith(cacheKey);
+        });
+    });
+
+    // MARK: Caching Without Prefix
+    describe("Caching Without Prefix", () => {
+        /** @type {{[x: string]: string}} */
+        const cache = {};
+
+        const getCacheMock = jest.fn((key) => cache[key]);
+        const setCacheMock = jest.fn((key, value) => {
+            cache[key] = value;
+        });
+
+        beforeEach(() => {
+            Minify.setup({
+                wwwRoot: path.join(__dirname, "www"),
+                jsRoot: "/js/",
+                cssRoot: "/css/",
+                caching: {
+                    get: getCacheMock,
+                    set: setCacheMock
+                }
+            });
+        });
+
+        test("should use caching for css if enabled", async () => {
+            const app = express();
+            app.get("/css", Minify.cssHandler);
+
+            jest.spyOn(fs, "readFile").mockResolvedValue("body { color: red; }");
+
+            let res = await request(app).get("/css").query({files: "/style.css"});
+            const minified = res.text;
+            expect(res.status).toBe(200);
+            expect(res.type).toBe("text/css");
+            expect(res.text).toContain("body{color:red}");
+            expect(setCacheMock).toHaveBeenCalledWith("minify:/style.css", res.text);
+            expect(cache["minify:/style.css"]).toBe(minified);
+
+            app.get("/css", Minify.cssHandler);
+
+            const cacheKey = "minify:/style.css";
+
+            res = await request(app).get("/css").query({files: "/style.css"});
+            expect(res.status).toBe(200);
+            expect(res.text).toBe(minified);
+            expect(getCacheMock).toHaveBeenCalledWith(cacheKey);
+        });
+
+        test("should use caching for js if enabled", async () => {
+            const app = express();
+            app.get("/js", Minify.jsHandler);
+
+            jest.spyOn(fs, "readFile").mockResolvedValue("function test() { console.log('test'); }");
+
+            let res = await request(app).get("/js").query({files: "/script.js"});
+            const minified = res.text;
+            expect(res.status).toBe(200);
+            expect(["application/javascript", "text/javascript"]).toContain(res.type);
+            expect(res.text).toContain("function test(){console.log(\"test\")}");
+            expect(setCacheMock).toHaveBeenCalledWith("minify:/script.js", res.text);
+            expect(cache["minify:/script.js"]).toBe(minified);
+
+            app.get("/js", Minify.jsHandler);
+
+            const cacheKey = "minify:/script.js";
+
+            res = await request(app).get("/js").query({files: "/script.js"});
+            expect(res.status).toBe(200);
+            expect(res.text).toBe(minified);
+            expect(getCacheMock).toHaveBeenCalledWith(cacheKey);
+        });
+    });
+
+    // MARK: No Caching
+    describe("No Caching", () => {
+        beforeEach(() => {
+            Minify.setup({
+                wwwRoot: path.join(__dirname, "www"),
+                jsRoot: "/js/",
+                cssRoot: "/css/"
+            });
+        });
+
+        test("should not use caching for css if disabled", async () => {
+            const app = express();
+            app.get("/css", Minify.cssHandler);
+
+            jest.spyOn(fs, "readFile").mockResolvedValue("body { color: red; }");
+
+            let res = await request(app).get("/css").query({files: "/style.css"});
+            const minified = res.text;
+            expect(res.status).toBe(200);
+            expect(res.type).toBe("text/css");
+            expect(res.text).toContain("body{color:red}");
+
+            app.get("/css", Minify.cssHandler);
+
+            res = await request(app).get("/css").query({files: "/style.css"});
+            expect(res.status).toBe(200);
+            expect(res.text).toBe(minified);
+        });
+
+        test("should not use caching for js if disabled", async () => {
+            const app = express();
+            app.get("/js", Minify.jsHandler);
+
+            jest.spyOn(fs, "readFile").mockResolvedValue("function test() { console.log('test'); }");
+
+            let res = await request(app).get("/js").query({files: "/script.js"});
+            const minified = res.text;
+            expect(res.status).toBe(200);
+            expect(["application/javascript", "text/javascript"]).toContain(res.type);
+            expect(res.text).toContain("function test(){console.log(\"test\")}");
+
+            app.get("/js", Minify.jsHandler);
+
+
+            res = await request(app).get("/js").query({files: "/script.js"});
+            expect(res.status).toBe(200);
+            expect(res.text).toBe(minified);
         });
     });
 
