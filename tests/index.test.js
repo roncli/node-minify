@@ -1,13 +1,15 @@
-const csso = require("csso");
-const express = require("express");
-const fs = require("fs/promises");
-const Minify = require("../index");
-const path = require("path");
-const request = require("supertest");
-const terser = require("terser");
+const csso = require("csso"),
+    express = require("express"),
+    fs = require("fs/promises"),
+    Minify = require("../index"),
+    path = require("path"),
+    request = require("supertest"),
+    terser = require("terser");
 
+// MARK: Minify
 describe("Minify", () => {
-    describe("setup", () => {
+    // MARK: Setup
+    describe("Setup", () => {
         beforeEach(() => {
             Minify.setup({
                 wwwRoot: path.join(__dirname, "www"),
@@ -21,7 +23,7 @@ describe("Minify", () => {
             });
         });
 
-        it("should set up options correctly", () => {
+        test("should set up options correctly", () => {
             const options = {
                 wwwRoot: "/var/www",
                 jsRoot: "/js/",
@@ -32,8 +34,10 @@ describe("Minify", () => {
         });
     });
 
-    describe("combine", () => {
-        describe("default setup", () => {
+    // MARK: Combine
+    describe("Combine", () => {
+        // MARK: Default Setup
+        describe("Default Setup", () => {
             beforeEach(() => {
                 Minify.setup({
                     wwwRoot: path.join(__dirname, "www"),
@@ -47,18 +51,19 @@ describe("Minify", () => {
                 });
             });
 
-            it("should return combined script tags for JS files", () => {
+            test("should return combined script tags for JS files", () => {
                 const result = Minify.combine(["file1.js", "file2.js"], "js");
                 expect(result).toBe("<script src=\"/js/?files=file1.js,file2.js\"></script>");
             });
 
-            it("should return combined link tags for CSS files", () => {
+            test("should return combined link tags for CSS files", () => {
                 const result = Minify.combine(["file1.css", "file2.css"], "css");
                 expect(result).toBe("<link rel=\"stylesheet\" href=\"/css/?files=file1.css,file2.css\" />");
             });
         });
 
-        describe("with disableTagCombining", () => {
+        // MARK: With disableTagCombining
+        describe("With disableTagCombining", () => {
             beforeEach(() => {
                 Minify.setup({
                     wwwRoot: path.join(__dirname, "www"),
@@ -68,19 +73,20 @@ describe("Minify", () => {
                 });
             });
 
-            it("should return individual tags if disableTagCombining is true for JS files", () => {
+            test("should return individual tags if disableTagCombining is true for JS files", () => {
                 const result = Minify.combine(["file1.js", "file2.js"], "js");
                 expect(result).toBe("<script src=\"file1.js\"></script><script src=\"file2.js\"></script>");
             });
 
-            it("should return individual tags if disableTagCombining is true for CSS files", () => {
+            test("should return individual tags if disableTagCombining is true for CSS files", () => {
                 const result = Minify.combine(["file1.css", "file2.css"], "css");
                 expect(result).toBe("<link rel=\"stylesheet\" href=\"file1.css\" /><link rel=\"stylesheet\" href=\"file2.css\" />");
             });
         });
     });
 
-    describe("cssHandler", () => {
+    // MARK: CSS Handler
+    describe("CSS Handler", () => {
         beforeEach(() => {
             Minify.setup({
                 wwwRoot: path.join(__dirname, "www"),
@@ -94,7 +100,7 @@ describe("Minify", () => {
             });
         });
 
-        it("should return minified CSS", async () => {
+        test("should return minified CSS", async () => {
             const app = express();
             app.get("/css", Minify.cssHandler);
 
@@ -106,7 +112,7 @@ describe("Minify", () => {
             expect(res.text).toContain("body{color:red}");
         });
 
-        it("should return 404 for missing files", async () => {
+        test("should return 404 for missing files", async () => {
             const app = express();
             app.get("/css", Minify.cssHandler);
 
@@ -116,7 +122,7 @@ describe("Minify", () => {
             expect(res.status).toBe(404);
         });
 
-        it("should return 404 for empty filenames", async () => {
+        test("should return 404 for empty filenames", async () => {
             const app = express();
             app.get("/css", Minify.cssHandler);
 
@@ -126,7 +132,7 @@ describe("Minify", () => {
             expect(res.status).toBe(404);
         });
 
-        it("should return 404 for invalid file paths", async () => {
+        test("should return 404 for invalid file paths", async () => {
             const app = express();
             app.get("/css", Minify.cssHandler);
 
@@ -136,7 +142,7 @@ describe("Minify", () => {
             expect(res.status).toBe(404);
         });
 
-        it("should return 404 for file paths outside of the root", async () => {
+        test("should return 404 for file paths outside of the root", async () => {
             const app = express();
             app.get("/css", Minify.cssHandler);
 
@@ -147,7 +153,8 @@ describe("Minify", () => {
         });
     });
 
-    describe("jsHandler", () => {
+    // MARK: JS Handler
+    describe("JS Handler", () => {
         beforeEach(() => {
             Minify.setup({
                 wwwRoot: path.join(__dirname, "www"),
@@ -161,7 +168,7 @@ describe("Minify", () => {
             });
         });
 
-        it("should return minified JS", async () => {
+        test("should return minified JS", async () => {
             const app = express();
             app.get("/js", Minify.jsHandler);
 
@@ -173,7 +180,7 @@ describe("Minify", () => {
             expect(res.text).toContain("function test(){console.log(\"test\")}");
         });
 
-        it("should return 404 for missing files", async () => {
+        test("should return 404 for missing files", async () => {
             const app = express();
             app.get("/js", Minify.jsHandler);
 
@@ -183,7 +190,7 @@ describe("Minify", () => {
             expect(res.status).toBe(404);
         });
 
-        it("should return 404 for empty filenames", async () => {
+        test("should return 404 for empty filenames", async () => {
             const app = express();
             app.get("/js", Minify.jsHandler);
 
@@ -193,7 +200,7 @@ describe("Minify", () => {
             expect(res.status).toBe(404);
         });
 
-        it("should return 404 for invalid file paths", async () => {
+        test("should return 404 for invalid file paths", async () => {
             const app = express();
             app.get("/js", Minify.jsHandler);
 
@@ -203,7 +210,7 @@ describe("Minify", () => {
             expect(res.status).toBe(404);
         });
 
-        it("should return 404 for file paths outside of the root", async () => {
+        test("should return 404 for file paths outside of the root", async () => {
             const app = express();
             app.get("/js", Minify.jsHandler);
 
@@ -214,14 +221,16 @@ describe("Minify", () => {
         });
     });
 
-    describe("null setup", () => {
-        it("should throw an error if setup is not called", () => {
+    // MARK: Null Setup
+    describe("Null Setup", () => {
+        test("should throw an error if setup is not called", () => {
             Minify.setup(null);
             expect(() => Minify.combine(["file1.js"], "js")).toThrow("node-minify is not setup properly. Please call the setup function and provide the wwwRoot, jsRoot, and cssRoot options. See README for details.");
         });
     });
 
-    describe("caching", () => {
+    // MARK: Caching
+    describe("Caching", () => {
         /** @type {{[x: string]: string}} */
         const cache = {};
 
@@ -243,7 +252,7 @@ describe("Minify", () => {
             });
         });
 
-        it("should use caching for css if enabled", async () => {
+        test("should use caching for css if enabled", async () => {
             const app = express();
             app.get("/css", Minify.cssHandler);
 
@@ -267,7 +276,7 @@ describe("Minify", () => {
             expect(getCacheMock).toHaveBeenCalledWith(cacheKey);
         });
 
-        it("should use caching for js if enabled", async () => {
+        test("should use caching for js if enabled", async () => {
             const app = express();
             app.get("/js", Minify.jsHandler);
 
@@ -292,7 +301,8 @@ describe("Minify", () => {
         });
     });
 
-    describe("redirects", () => {
+    // MARK: Redirects
+    describe("Redirects", () => {
         beforeEach(() => {
             Minify.setup({
                 wwwRoot: path.join(__dirname, "www"),
@@ -310,7 +320,7 @@ describe("Minify", () => {
             });
         });
 
-        it("should handle redirects for CSS files", async () => {
+        test("should handle redirects for CSS files", async () => {
             const app = express();
             app.get("/css", Minify.cssHandler);
 
@@ -322,7 +332,7 @@ describe("Minify", () => {
             expect(res.text).toContain("body{color:#00f}");
         });
 
-        it("should handle redirects for JS files", async () => {
+        test("should handle redirects for JS files", async () => {
             const app = express();
             app.get("/js", Minify.jsHandler);
 
@@ -335,7 +345,8 @@ describe("Minify", () => {
         });
     });
 
-    describe("error handling", () => {
+    // MARK: Error Handling
+    describe("Error Handling", () => {
         beforeEach(() => {
             Minify.setup({
                 wwwRoot: path.join(__dirname, "www"),
@@ -349,7 +360,7 @@ describe("Minify", () => {
             });
         });
 
-        it("should handle errors when reading files for CSS", async () => {
+        test("should handle errors when reading files for CSS", async () => {
             const app = express();
             app.get("/css", Minify.cssHandler);
 
@@ -360,7 +371,7 @@ describe("Minify", () => {
             expect(res.text).toContain("File not found");
         });
 
-        it("should handle errors when reading files for JS", async () => {
+        test("should handle errors when reading files for JS", async () => {
             const app = express();
             app.get("/js", Minify.jsHandler);
 
@@ -371,7 +382,7 @@ describe("Minify", () => {
             expect(res.text).toContain("File not found");
         });
 
-        it("should handle errors when minifying CSS through csso", async () => {
+        test("should handle errors when minifying CSS through csso", async () => {
             const app = express();
             app.get("/css", Minify.cssHandler);
 
@@ -385,7 +396,7 @@ describe("Minify", () => {
             expect(res.text).toContain("Minification error");
         });
 
-        it("should handle errors when minifying JS through terser", async () => {
+        test("should handle errors when minifying JS through terser", async () => {
             const app = express();
             app.get("/js", Minify.jsHandler);
 
