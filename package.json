@@ -33,9 +33,10 @@
         "supertest": "7.2.2"
     },
     "engines": {
-        "node": ">=16.0.0"
+        "node": ">=20.19.0"
     },
     "scripts": {
+        "reinstall": "(if exist node_modules rmdir /s /q node_modules) & npm install --force",
         "test": "jest --coverage"
     },
     "private": true
