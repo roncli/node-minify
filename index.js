@@ -76,28 +76,32 @@ class Minify {
         const files = req.query.files.split(",");
 
         try {
-            let str = "";
+            const fileInfos = [];
 
-            try {
-                for (const file of files) {
-                    if (!file.startsWith("/")) {
+            for (const file of files) {
+                if (!file.startsWith("/")) {
+                    return next();
+                }
+
+                const redirect = Minify.#options.redirects && Minify.#options.redirects[file] || void 0;
+
+                let filePath;
+                if (redirect) {
+                    filePath = redirect.path;
+                } else {
+                    filePath = path.join(Minify.#options.wwwRoot, file);
+
+                    if (!filePath.startsWith(Minify.#options.wwwRoot)) {
                         return next();
                     }
+                }
+                fileInfos.push({filePath, redirect});
+            }
 
-                    const redirect = Minify.#options.redirects && Minify.#options.redirects[file] || void 0;
+            let str;
 
-                    let filePath;
-
-                    if (redirect) {
-                        filePath = redirect.path;
-                    } else {
-                        filePath = path.join(Minify.#options.wwwRoot, file);
-
-                        if (!filePath.startsWith(Minify.#options.wwwRoot)) {
-                            return next();
-                        }
-                    }
-
+            try {
+                str = (await Promise.all(fileInfos.map(async ({filePath, redirect}) => {
                     let data = await fs.readFile(filePath, "utf8");
 
                     if (redirect && redirect.replace) {
@@ -106,14 +110,10 @@ class Minify {
                         }
                     }
 
-                    str = `${str}${data}`;
-                }
+                    return data;
+                }))).join("");
             } catch (err) {
-                if (err.code === "ENOENT") {
-                    return next();
-                }
-
-                return next(err);
+                return next(err.code === "ENOENT" ? void 0 : err);
             }
 
             const output = csso.minify(str);
@@ -160,43 +160,45 @@ class Minify {
         const files = req.query.files.split(",");
 
         try {
-            /** @type {Object<string, string>} */
-            const code = {};
-
-            try {
-                for (const file of files) {
-                    if (!file.startsWith("/")) {
-                        return next();
-                    }
-
-                    const redirect = Minify.#options.redirects && Minify.#options.redirects[file] || void 0;
-
-                    let filePath;
-
-                    if (redirect) {
-                        filePath = redirect.path;
-                    } else {
-                        filePath = path.join(Minify.#options.wwwRoot, file);
-
-                        if (!filePath.startsWith(Minify.#options.wwwRoot)) {
-                            return next();
-                        }
-                    }
-
-                    code[file] = await fs.readFile(filePath, "utf8");
-
-                    if (redirect && redirect.replace) {
-                        for (const find of Object.keys(redirect.replace)) {
-                            code[file] = code[file].split(find).join(redirect.replace[find]);
-                        }
-                    }
-                }
-            } catch (err) {
-                if (err.code === "ENOENT") {
+            const fileInfos = [];
+            for (const file of files) {
+                if (!file.startsWith("/")) {
                     return next();
                 }
 
-                return next(err);
+                const redirect = Minify.#options.redirects && Minify.#options.redirects[file] || void 0;
+
+                let filePath;
+                if (redirect) {
+                    filePath = redirect.path;
+                } else {
+                    filePath = path.join(Minify.#options.wwwRoot, file);
+                    if (!filePath.startsWith(Minify.#options.wwwRoot)) {
+                        return next();
+                    }
+                }
+                fileInfos.push({file, filePath, redirect});
+            }
+
+            /** @type {{ [file: string]: string }} */
+            let code;
+            try {
+                code = (await Promise.all(fileInfos.map(async ({file, filePath, redirect}) => {
+                    let data = await fs.readFile(filePath, "utf8");
+
+                    if (redirect && redirect.replace) {
+                        for (const find of Object.keys(redirect.replace)) {
+                            data = data.split(find).join(redirect.replace[find]);
+                        }
+                    }
+
+                    return {file, data};
+                }))).reduce((acc, {file, data}) => {
+                    acc[file] = data;
+                    return acc;
+                }, {});
+            } catch (err) {
+                return next(err.code === "ENOENT" ? void 0 : err);
             }
 
             const output = await terser.minify(code, {nameCache: Minify.#nameCache});
