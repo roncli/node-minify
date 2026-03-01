@@ -39,7 +39,7 @@
         "node": ">=20.19.0"
     },
     "scripts": {
-        "reinstall": "(if exist node_modules rmdir /s /q node_modules) & npm install --force",
+        "reinstall": "(if exist node_modules rmdir /s /q node_modules) & npm install",
         "test": "jest --coverage"
     },
     "private": true
