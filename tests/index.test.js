@@ -1,5 +1,5 @@
 const csso = require("csso"),
-    express = require("express"),
+    Express = require("express"),
     fs = require("fs/promises"),
     Minify = require("../index"),
     path = require("path"),
@@ -101,7 +101,7 @@ describe("Minify", () => {
         });
 
         test("should return minified CSS", async () => {
-            const app = express();
+            const app = Express();
             app.get("/css", Minify.cssHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("body { color: red; }");
@@ -113,7 +113,7 @@ describe("Minify", () => {
         });
 
         test("should return 404 for missing files", async () => {
-            const app = express();
+            const app = Express();
             app.get("/css", Minify.cssHandler);
 
             jest.spyOn(fs, "readFile").mockRejectedValue({code: "ENOENT"});
@@ -123,7 +123,7 @@ describe("Minify", () => {
         });
 
         test("should return 404 for empty filenames", async () => {
-            const app = express();
+            const app = Express();
             app.get("/css", Minify.cssHandler);
 
             jest.spyOn(fs, "readFile").mockRejectedValue({code: "ENOENT"});
@@ -133,7 +133,7 @@ describe("Minify", () => {
         });
 
         test("should return 404 for invalid file paths", async () => {
-            const app = express();
+            const app = Express();
             app.get("/css", Minify.cssHandler);
 
             jest.spyOn(fs, "readFile").mockRejectedValue({code: "ENOENT"});
@@ -143,7 +143,7 @@ describe("Minify", () => {
         });
 
         test("should return 404 for file paths outside of the root", async () => {
-            const app = express();
+            const app = Express();
             app.get("/css", Minify.cssHandler);
 
             jest.spyOn(fs, "readFile").mockRejectedValue({code: "ENOENT"});
@@ -169,7 +169,7 @@ describe("Minify", () => {
         });
 
         test("should return minified JS", async () => {
-            const app = express();
+            const app = Express();
             app.get("/js", Minify.jsHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("function test() { console.log('test'); }");
@@ -181,7 +181,7 @@ describe("Minify", () => {
         });
 
         test("should return 404 for missing files", async () => {
-            const app = express();
+            const app = Express();
             app.get("/js", Minify.jsHandler);
 
             jest.spyOn(fs, "readFile").mockRejectedValue({code: "ENOENT"});
@@ -191,7 +191,7 @@ describe("Minify", () => {
         });
 
         test("should return 404 for empty filenames", async () => {
-            const app = express();
+            const app = Express();
             app.get("/js", Minify.jsHandler);
 
             jest.spyOn(fs, "readFile").mockRejectedValue({code: "ENOENT"});
@@ -201,7 +201,7 @@ describe("Minify", () => {
         });
 
         test("should return 404 for invalid file paths", async () => {
-            const app = express();
+            const app = Express();
             app.get("/js", Minify.jsHandler);
 
             jest.spyOn(fs, "readFile").mockRejectedValue({code: "ENOENT"});
@@ -211,7 +211,7 @@ describe("Minify", () => {
         });
 
         test("should return 404 for file paths outside of the root", async () => {
-            const app = express();
+            const app = Express();
             app.get("/js", Minify.jsHandler);
 
             jest.spyOn(fs, "readFile").mockRejectedValue({code: "ENOENT"});
@@ -253,7 +253,7 @@ describe("Minify", () => {
         });
 
         test("should use caching for css if enabled", async () => {
-            const app = express();
+            const app = Express();
             app.get("/css", Minify.cssHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("body { color: red; }");
@@ -277,7 +277,7 @@ describe("Minify", () => {
         });
 
         test("should use caching for js if enabled", async () => {
-            const app = express();
+            const app = Express();
             app.get("/js", Minify.jsHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("function test() { console.log('test'); }");
@@ -324,7 +324,7 @@ describe("Minify", () => {
         });
 
         test("should use caching for css if enabled", async () => {
-            const app = express();
+            const app = Express();
             app.get("/css", Minify.cssHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("body { color: red; }");
@@ -348,7 +348,7 @@ describe("Minify", () => {
         });
 
         test("should use caching for js if enabled", async () => {
-            const app = express();
+            const app = Express();
             app.get("/js", Minify.jsHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("function test() { console.log('test'); }");
@@ -383,7 +383,7 @@ describe("Minify", () => {
         });
 
         test("should not use caching for css if disabled", async () => {
-            const app = express();
+            const app = Express();
             app.get("/css", Minify.cssHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("body { color: red; }");
@@ -402,7 +402,7 @@ describe("Minify", () => {
         });
 
         test("should not use caching for js if disabled", async () => {
-            const app = express();
+            const app = Express();
             app.get("/js", Minify.jsHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("function test() { console.log('test'); }");
@@ -442,7 +442,7 @@ describe("Minify", () => {
         });
 
         test("should handle redirects for CSS files", async () => {
-            const app = express();
+            const app = Express();
             app.get("/css", Minify.cssHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("body { color: red; }");
@@ -454,7 +454,7 @@ describe("Minify", () => {
         });
 
         test("should handle redirects for JS files", async () => {
-            const app = express();
+            const app = Express();
             app.get("/js", Minify.jsHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("function test() { console.log('test'); }");
@@ -482,7 +482,7 @@ describe("Minify", () => {
         });
 
         test("should handle errors when reading files for CSS", async () => {
-            const app = express();
+            const app = Express();
             app.get("/css", Minify.cssHandler);
 
             jest.spyOn(fs, "readFile").mockRejectedValue(new Error("File not found"));
@@ -493,7 +493,7 @@ describe("Minify", () => {
         });
 
         test("should handle errors when reading files for JS", async () => {
-            const app = express();
+            const app = Express();
             app.get("/js", Minify.jsHandler);
 
             jest.spyOn(fs, "readFile").mockRejectedValue(new Error("File not found"));
@@ -504,7 +504,7 @@ describe("Minify", () => {
         });
 
         test("should handle errors when minifying CSS through csso", async () => {
-            const app = express();
+            const app = Express();
             app.get("/css", Minify.cssHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("body { color: red; }");
@@ -518,7 +518,7 @@ describe("Minify", () => {
         });
 
         test("should handle errors when minifying JS through terser", async () => {
-            const app = express();
+            const app = Express();
             app.get("/js", Minify.jsHandler);
 
             jest.spyOn(fs, "readFile").mockResolvedValue("function test() { console.log('test'); }");

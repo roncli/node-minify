@@ -16,10 +16,10 @@ Since this is largely used for personal projects, this is not an npm package.  N
 To add node-minify to your Express application, run the setup function and then add the CSS and JavaScript handlers to Express.
 
 ```javascript
-const express = require("express");
+const Express = require("express");
 const Minify = require("@roncli/node-minify");
 
-const app = express();
+const app = Express();
 
 Minify.setup({
     wwwRoot: path.join(__dirname, "public"),
