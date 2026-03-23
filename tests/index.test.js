@@ -180,16 +180,16 @@ describe("Minify", () => {
             expect(res.text).toContain("function test(){console.log(\"test\")}");
         });
 
-        test("should return minified HTML inside minified JS", async () => {
+        test("should return minified HTML, CSS, and JS inside a template string", async () => {
             const app = Express();
             app.get("/js", Minify.jsHandler);
 
-            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<div>\n<span>Test</span>\n</div>` + /* html */`<div>\n<span>Test2</span>\n</div>`);");
+            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<style>\nh1    {    color:    red;    }\n</style>   <script>\n   console.log('Test');  </script>   <div>\n<span>Test</span>\n</div>` + /* html */`<div>\n<span>Test2</span>\n</div>`);");
 
             const res = await request(app).get("/js").query({files: "/script.js"});
             expect(res.status).toBe(200);
             expect(["application/javascript", "text/javascript"]).toContain(res.type);
-            expect(res.text).toContain("console.log(\"<div> <span>Test</span> </div><div> <span>Test2</span> </div>\")");
+            expect(res.text).toContain("console.log('<style>h1{color:red}</style> <script>console.log(\"Test\")<\\/script> <div> <span>Test</span> </div><div> <span>Test2</span> </div>')");
         });
 
         test("should return 404 for missing files", async () => {

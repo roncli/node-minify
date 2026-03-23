@@ -224,6 +224,8 @@ class Minify {
                                         conservativeCollapse: true,
                                         decodeEntities: true,
                                         html5: true,
+                                        minifyCSS: true,
+                                        minifyJS: true,
                                         removeAttributeQuotes: true,
                                         removeComments: true,
                                         removeEmptyAttributes: true,
