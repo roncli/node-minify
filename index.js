@@ -6,8 +6,11 @@
 
 const csso = require("csso"),
     fs = require("fs/promises"),
+    HtmlMinifierTerser = require("html-minifier-terser"),
     path = require("path"),
     terser = require("terser");
+
+const htmlTagMatch = /\/\* html \*\/`(?<content>(?:[^\\`]|\\.|\\`)*?)`/gs;
 
 // MARK: Minify
 /**
@@ -192,7 +195,58 @@ class Minify {
                         }
                     }
 
-                    return {file, data};
+                    return {
+                        file,
+                        data: await (() => {
+                            const matches = Array.from(data.matchAll(htmlTagMatch));
+                            if (matches.length === 0) {
+                                return Promise.resolve(data);
+                            }
+
+                            return matches.reduce(async (accP, match, idx) => {
+                                const acc = await accP;
+                                const lastIndex = idx === 0 ? 0 : matches[idx - 1].index + matches[idx - 1][0].length;
+                                let result = acc;
+
+                                // Append text before the match
+                                result += data.slice(lastIndex, match.index);
+                                let {content} = match.groups;
+
+                                // Unescape escaped backticks
+                                content = content.replace(/\\`/g, "`");
+
+                                // Minify the HTML content
+                                const minified = await HtmlMinifierTerser.minify(
+                                    content,
+                                    {
+                                        collapseBooleanAttributes: true,
+                                        collapseWhitespace: true,
+                                        conservativeCollapse: true,
+                                        decodeEntities: true,
+                                        html5: true,
+                                        removeAttributeQuotes: true,
+                                        removeComments: true,
+                                        removeEmptyAttributes: true,
+                                        removeOptionalTags: true,
+                                        removeRedundantAttributes: true,
+                                        useShortDoctype: true
+                                    }
+                                );
+
+                                // Re-escape backticks in the minified content
+                                const reEscaped = minified.replace(/`/g, "\\`");
+
+                                // Reconstruct the template literal
+                                result += `/* html */\`${reEscaped}\``;
+
+                                // If last match, append the rest
+                                if (idx === matches.length - 1) {
+                                    result += data.slice(match.index + match[0].length);
+                                }
+                                return result;
+                            }, Promise.resolve(""));
+                        })()
+                    };
                 }))).reduce((acc, {file, data}) => {
                     acc[file] = data;
                     return acc;
