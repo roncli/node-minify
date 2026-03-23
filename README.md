@@ -7,7 +7,7 @@ Since this is largely used for personal projects, this is not an npm package.  N
 ```json
 {
     "dependencies": {
-        "@roncli/node-minify": "roncli/node-minify#v1.2.6"
+        "@roncli/node-minify": "roncli/node-minify#v1.3.0"
     }
 }
 ```
@@ -44,6 +44,17 @@ You could then use the following URLs:
 The result is a combined file made up of each of the files that you listed after the question mark.  The file is minified, meaning it is compacted as small as possible without affecting functionality.
 
 This library does not prevent you from calling the original, unmodified versions of the files.  All 6 URLs above will work.
+
+### What Gets Minified?
+The library minifies CSS and JavaScript files.  It does not minify HTML files, but it does minify any HTML strings that are embedded within JavaScript files.  However, you must prefix the HTML string with the comment `/* html */` and use a template literal for the library to recognize it as HTML that should be minified.  For example:
+
+```javascript
+const html = /* html */`
+    <div>
+        <h1> Hello World </h1>
+    </div>
+`;
+```
 
 ### Options
 The setup function provides a number of options and customizations.
@@ -109,6 +120,10 @@ res.status(200).send(`
 The output of this function varies depending on how you set `disableTagCombining` in the options.  By default, tag combining is enabled, and you will get a single `<link>` or `<script>` tag with a single URL that will serve the combined list of files.  If tag combining is disabled, then you will get one `<link>` or `<script`> tag for each file listed.  Setting `disableTagCombining` to `true` is a good way to debug your application when you need uncombined and unminifed versions of the files, or you suspect one of the files you are attempting to combine and minify is not loading correctly.
 
 ## Version history
+
+### v1.3.0 - 3/22/2026
+* Added `html-minifier-terser` to minify HTML embedded in JavaScript files.
+* Package updates.
 
 ### v1.2.6 - 2/20/2026
 * Refactored file handling to validate files before reading, improving reliability.
