@@ -180,18 +180,6 @@ describe("Minify", () => {
             expect(res.text).toContain("function test(){console.log(\"test\")}");
         });
 
-        test("should return minified HTML, CSS, and JS inside a template string", async () => {
-            const app = Express();
-            app.get("/js", Minify.jsHandler);
-
-            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<style>\nh1    {    color:    red;    }\n</style>   <script>\n   console.log('Test');  </script>   <div>\n<span>Test</span>\n</div>` + /* html */`<div>\n<span>Test2</span>\n</div>`);");
-
-            const res = await request(app).get("/js").query({files: "/script.js"});
-            expect(res.status).toBe(200);
-            expect(["application/javascript", "text/javascript"]).toContain(res.type);
-            expect(res.text).toContain("console.log('<style>h1{color:red}</style> <script>console.log(\"Test\")<\\/script> <div> <span>Test</span> </div><div> <span>Test2</span> </div>')");
-        });
-
         test("should return 404 for missing files", async () => {
             const app = Express();
             app.get("/js", Minify.jsHandler);
@@ -230,6 +218,70 @@ describe("Minify", () => {
 
             const res = await request(app).get("/js").query({files: "/../../etc/passwd"});
             expect(res.status).toBe(404);
+        });
+    });
+
+    // MARK: JS HTML Minification Handler
+    describe("JS HTML Minification Handler", () => {
+        beforeEach(() => {
+            Minify.setup({
+                wwwRoot: path.join(__dirname, "www"),
+                jsRoot: "/js/",
+                cssRoot: "/css/",
+                caching: {
+                    get: jest.fn(),
+                    set: jest.fn(),
+                    prefix: "test"
+                }
+            });
+        });
+
+        test("should return minified HTML, CSS, and JS inside a template string", async () => {
+            const app = Express();
+            app.get("/js", Minify.jsHandler);
+
+            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<style>\nh1    {    color:    red;    }\n</style>   <script>\n   console.log('Test');  </script>   <div>\n<span>Test</span>\n</div>` + /* html */`<div>\n<span>Test2</span>\n</div>`);");
+
+            const res = await request(app).get("/js").query({files: "/script.js"});
+            expect(res.status).toBe(200);
+            expect(["application/javascript", "text/javascript"]).toContain(res.type);
+            expect(res.text).toContain("console.log('<style>h1{color:red}</style> <script>console.log(\"Test\")<\\/script> <div> <span>Test</span> </div><div> <span>Test2</span> </div>')");
+        });
+
+        test("should return minified HTML and JS inside nested template strings", async () => {
+            const app = Express();
+            app.get("/js", Minify.jsHandler);
+
+            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<div>${foo + /* html */`<span>${bar}</span>`}</div>`);"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
+
+            const res = await request(app).get("/js").query({files: "/script.js"});
+            expect(res.status).toBe(200);
+            expect(["application/javascript", "text/javascript"]).toContain(res.type);
+            expect(res.text).toContain("console.log(`<div>${foo+`<span>${bar}</span>`}</div>`)"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
+        });
+
+        test("should return minified HTML and JS inside nested template strings with strings containing special characters", async () => {
+            const app = Express();
+            app.get("/js", Minify.jsHandler);
+
+            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<div>${foo + /* html */`<span>}${bar}${foo + `${baz}`}{\\`</span>`}</div>`);"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
+
+            const res = await request(app).get("/js").query({files: "/script.js"});
+            expect(res.status).toBe(200);
+            expect(["application/javascript", "text/javascript"]).toContain(res.type);
+            expect(res.text).toContain("console.log(`<div>${foo+`<span>}${bar}${foo+`${baz}`}{\\`</span>`}</div>`)"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
+        });
+
+        test("should return minified CSS nested deep inside HTML and JS template strings", async () => {
+            const app = Express();
+            app.get("/js", Minify.jsHandler);
+
+            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<div>${foo + /* html */`<span>Test</span><style>\nh1    {    color:    ${color};    }\n</style>`}</div>`);"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
+
+            const res = await request(app).get("/js").query({files: "/script.js"});
+            expect(res.status).toBe(200);
+            expect(["application/javascript", "text/javascript"]).toContain(res.type);
+            expect(res.text).toContain("console.log(`<div>${foo+`<span>Test</span><style>h1{color:${color}}</style>`}</div>`)"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
         });
     });
 

@@ -10,7 +10,7 @@ const csso = require("csso"),
     path = require("path"),
     terser = require("terser");
 
-const htmlTagMatch = /\/\* html \*\/`(?<content>(?:[^\\`]|\\.|\\`)*?)`/gs;
+const placeholderMatch = /__HTMLMIN_PLACEHOLDER_(?<index>\d+)__/g;
 
 // MARK: Minify
 /**
@@ -25,6 +25,113 @@ class Minify {
     };
 
     static #nameCache = {};
+
+    // MARK: static async #extractTemplates
+    /**
+     * Extracts template literals from a string and replaces them with placeholders.
+     * @param {string} str The string to extract templates from.
+     * @param {string[]} placeholders The array to store the extracted templates.
+     * @returns {Promise<string>} The string with templates replaced by placeholders.
+     */
+    static async #extractTemplates(str, placeholders) {
+        let result = "";
+        let i = 0;
+        while (i < str.length) {
+            const start = str.indexOf("${", i);
+            if (start === -1) {
+                result += str.slice(i);
+                break;
+            }
+            result += str.slice(i, start);
+            let fragment = "${";
+            let depth = 1;
+            let j = start + 2;
+            while (j < str.length && depth > 0) {
+                const char = str[j];
+                if (char === "'" || char === "\"" || char === "`") {
+                    const quote = char;
+                    fragment += char;
+                    j++;
+                    while (j < str.length) {
+                        fragment += str[j];
+                        if (str[j] === "\\" && j + 1 < str.length) {
+                            j++;
+                            fragment += str[j];
+                            j++;
+                            continue;
+                        }
+                        if (str[j] === quote) {
+                            j++;
+                            break;
+                        }
+                        j++;
+                    }
+                    continue;
+                }
+                if (char === "{") {
+                    depth++;
+                } else if (char === "}") {
+                    depth--;
+                }
+                fragment += char;
+                j++;
+            }
+
+            const idx = placeholders.length;
+            const inner = fragment.slice(2, -1); // Remove ${ and final }
+
+            const innerPlaceholders = [];
+            const contentWithPlaceholders = await Minify.#extractTemplates(inner, innerPlaceholders); // eslint-disable-line no-await-in-loop -- This is required since the minification must happen in order.
+            const minifiedWithPlaceholders = await Minify.#minifyHtmlWithPlaceholders(contentWithPlaceholders); // eslint-disable-line no-await-in-loop -- This is required since the minification must happen in order.
+            const minifiedInner = Minify.#restoreTemplates(minifiedWithPlaceholders, innerPlaceholders);
+
+            placeholders.push(minifiedInner);
+            result += `__HTMLMIN_PLACEHOLDER_${idx}__`;
+            i = j;
+        }
+        return result;
+    }
+
+    // MARK: static async #minifyHtmlWithPlaceholders
+    /**
+     * Minifies HTML content with JS template placeholders.
+     * @param {string} contentWithPlaceholders The HTML content with JS template placeholders.
+     * @returns {Promise<string>} The minified HTML with placeholders.
+     */
+    static async #minifyHtmlWithPlaceholders(contentWithPlaceholders) {
+        return await HtmlMinifierTerser.minify(
+            contentWithPlaceholders,
+            {
+                collapseBooleanAttributes: true,
+                collapseWhitespace: true,
+                conservativeCollapse: true,
+                decodeEntities: true,
+                html5: true,
+                minifyCSS: true,
+                minifyJS: true,
+                removeAttributeQuotes: true,
+                removeComments: true,
+                removeEmptyAttributes: true,
+                removeOptionalTags: true,
+                removeRedundantAttributes: true,
+                useShortDoctype: true
+            }
+        );
+    }
+
+    // MARK: static #restoreTemplates
+    /**
+     * Restores template literals in a string from placeholders.
+     * @param {string} str The string to restore templates in.
+     * @param {string[]} placeholders The array of templates to restore.
+     * @returns {string} The string with placeholders replaced by the original templates.
+     */
+    static #restoreTemplates(str, placeholders) {
+        return str.replace(placeholderMatch, (_substr, _args1, _offset, _str, groups) => {
+            const val = placeholders[Number(groups.index)];
+            return `\${${val}}`;
+        });
+    }
 
     // MARK: static #validateSetup
     /**
@@ -195,59 +302,15 @@ class Minify {
                         }
                     }
 
+                    // Use extractTemplates and restoreTemplates on the whole file
+                    const placeholders = [];
+                    const contentWithPlaceholders = await Minify.#extractTemplates(data, placeholders);
+                    const minifiedWithPlaceholders = await Minify.#minifyHtmlWithPlaceholders(contentWithPlaceholders);
+                    const minified = Minify.#restoreTemplates(minifiedWithPlaceholders, placeholders);
+
                     return {
                         file,
-                        data: await (() => {
-                            const matches = Array.from(data.matchAll(htmlTagMatch));
-                            if (matches.length === 0) {
-                                return Promise.resolve(data);
-                            }
-
-                            return matches.reduce(async (accP, match, idx) => {
-                                const acc = await accP;
-                                const lastIndex = idx === 0 ? 0 : matches[idx - 1].index + matches[idx - 1][0].length;
-                                let result = acc;
-
-                                // Append text before the match
-                                result += data.slice(lastIndex, match.index);
-                                let {content} = match.groups;
-
-                                // Unescape escaped backticks
-                                content = content.replace(/\\`/g, "`");
-
-                                // Minify the HTML content
-                                const minified = await HtmlMinifierTerser.minify(
-                                    content,
-                                    {
-                                        collapseBooleanAttributes: true,
-                                        collapseWhitespace: true,
-                                        conservativeCollapse: true,
-                                        decodeEntities: true,
-                                        html5: true,
-                                        minifyCSS: true,
-                                        minifyJS: true,
-                                        removeAttributeQuotes: true,
-                                        removeComments: true,
-                                        removeEmptyAttributes: true,
-                                        removeOptionalTags: true,
-                                        removeRedundantAttributes: true,
-                                        useShortDoctype: true
-                                    }
-                                );
-
-                                // Re-escape backticks in the minified content
-                                const reEscaped = minified.replace(/`/g, "\\`");
-
-                                // Reconstruct the template literal
-                                result += `/* html */\`${reEscaped}\``;
-
-                                // If last match, append the rest
-                                if (idx === matches.length - 1) {
-                                    result += data.slice(match.index + match[0].length);
-                                }
-                                return result;
-                            }, Promise.resolve(""));
-                        })()
+                        data: minified
                     };
                 }))).reduce((acc, {file, data}) => {
                     acc[file] = data;
