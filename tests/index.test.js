@@ -251,12 +251,12 @@ describe("Minify", () => {
             const app = Express();
             app.get("/js", Minify.jsHandler);
 
-            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<style>\nh1    {    color:    red;    }\n</style>   <script>\n   console.log('Test');  </script>   <div>\n<span>Test</span>\n</div>` + /* html */`<div>\n<span>Test2</span>\n</div>`);");
+            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<link rel=\"stylesheet\" href=\"style.css\" media=\"screen and (min-width: 600px)\"><style>\nh1    {    color:    red;    }\n</style>   <script>\n   console.log('Test');  </script>   <div>\n<span style=\"color: blue;\">Test</span>\n</div>` + /* html */`<div>\n<span>Test2</span>\n</div>`);");
 
             const res = await request(app).get("/js").query({files: "/script.js"});
             expect(res.status).toBe(200);
             expect(["application/javascript", "text/javascript"]).toContain(res.type);
-            expect(res.text).toContain("console.log('<style>h1{color:red}</style> <script>console.log(\"Test\")<\\/script> <div> <span>Test</span> </div><div> <span>Test2</span> </div>')");
+            expect(res.text).toContain("console.log('<link rel=stylesheet href=style.css media=\"screen and (min-width:600px)\"><style>h1{color:red}</style> <script>console.log(\"Test\")<\\/script> <div> <span style=color:#00f>Test</span> </div><div> <span>Test2</span> </div>')");
         });
 
         test("should return minified HTML and JS inside nested template strings", async () => {

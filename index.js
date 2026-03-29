@@ -187,6 +187,42 @@ class Minify {
         return result;
     }
 
+    // MARK: static async #minifyCssFromHtmlMinifierTerser
+    /**
+     * Minifies CSS content from html-minifier-terser.
+     * @param {string} text The CSS content to minify.
+     * @param {"inline" | "media" | undefined} type The type of content being minified.
+     * @returns {string} The minified CSS content.
+     */
+    static #minifyCssFromHtmlMinifierTerser(text, type) {
+        switch (type) {
+            case "inline":
+                // This came from a style attribute.  Wrap it in a simple selector.
+                text = `*{${text}}`;
+                break;
+            case "media":
+                // This came from a media attribute.  Wrap it in a simple media query.
+                text = `@media ${text}{a{top:0}}`;
+                break;
+        }
+
+        // Perform minification.
+        text = csso.minify(text).css;
+
+        switch (type) {
+            case "inline":
+                // Unwrap the style attribute content from the selector.
+                return text.slice(2, -1);
+            case "media": {
+                // Unwrap the media attribute content from the media query.
+                return text.slice(7, -10).trim();
+            }
+            default:
+                // Normal CSS, just return the text.
+                return text;
+        }
+    }
+
     // MARK: static async #minifyHtmlWithPlaceholders
     /**
      * Minifies HTML content with JS template placeholders.
@@ -202,7 +238,7 @@ class Minify {
                 conservativeCollapse: true,
                 decodeEntities: true,
                 html5: true,
-                minifyCSS: true,
+                minifyCSS: Minify.#minifyCssFromHtmlMinifierTerser,
                 minifyJS: true,
                 removeAttributeQuotes: true,
                 removeComments: true,
