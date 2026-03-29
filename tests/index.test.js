@@ -219,6 +219,17 @@ describe("Minify", () => {
             const res = await request(app).get("/js").query({files: "/../../etc/passwd"});
             expect(res.status).toBe(404);
         });
+
+        test("should return 500 for a template string that is not properly closed", async () => {
+            const app = Express();
+            app.get("/js", Minify.jsHandler);
+
+            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<div><span>Test</span></div>);");
+
+            const res = await request(app).get("/js").query({files: "/script.js"});
+            expect(res.status).toBe(500);
+            expect(res.text).toContain("Unexpected token eof");
+        });
     });
 
     // MARK: JS HTML Minification Handler

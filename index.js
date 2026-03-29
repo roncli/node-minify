@@ -10,7 +10,7 @@ const csso = require("csso"),
     path = require("path"),
     terser = require("terser");
 
-const placeholderMatch = /__HTMLMIN_PLACEHOLDER_(?<index>\d+)__/g;
+const placeholderTypedMatch = /__HTMLMIN_PLACEHOLDER_(?<type>html|string)_(?<index>\d+)__/g;
 
 // MARK: Minify
 /**
@@ -26,68 +26,163 @@ class Minify {
 
     static #nameCache = {};
 
-    // MARK: static async #extractTemplates
+    // MARK: static async #extractAndMinifyTemplates
     /**
-     * Extracts template literals from a string and replaces them with placeholders.
+     * Extracts and minifies templates from a string and replaces them with placeholders.
      * @param {string} str The string to extract templates from.
      * @param {string[]} placeholders The array to store the extracted templates.
      * @returns {Promise<string>} The string with templates replaced by placeholders.
      */
-    static async #extractTemplates(str, placeholders) {
+    static async #extractAndMinifyTemplates(str, placeholders) {
         let result = "";
         let i = 0;
         while (i < str.length) {
-            const start = str.indexOf("${", i);
-            if (start === -1) {
+            // Find the next HTML template and string template.
+            const htmlTemplateStart = str.indexOf("/* html */`", i);
+            const stringTemplateStart = str.indexOf("${", i);
+
+            let start;
+
+            /** @type {"html" | "string"} */
+            let type;
+            if (htmlTemplateStart === -1 && stringTemplateStart === -1) {
+                // No more templates found.
                 result += str.slice(i);
                 break;
+            } else if (htmlTemplateStart !== -1 && (stringTemplateStart === -1 || htmlTemplateStart < stringTemplateStart)) {
+                // Next is an HTML template.
+                start = htmlTemplateStart;
+                type = "html";
+            } else {
+                // Next is a string template.
+                start = stringTemplateStart;
+                type = "string";
             }
             result += str.slice(i, start);
-            let fragment = "${";
-            let depth = 1;
-            let j = start + 2;
-            while (j < str.length && depth > 0) {
-                const char = str[j];
-                if (char === "'" || char === "\"" || char === "`") {
-                    const quote = char;
+
+            if (type === "html") {
+                // Extract the HTML template, handling nested templates and other syntactical edge cases correctly.
+
+                // Use a state machine to ensure the backtick is not escaped and is the start of a template.
+                let j = start + 11;
+                let fragment = "";
+                let exprDepth = 0;
+                while (j < str.length) {
+                    const char = str[j];
+
+                    // Handle start of string template.
+                    if (char === "$" && str[j + 1] === "{") {
+                        exprDepth++;
+                        fragment += "${";
+                        j += 2;
+                        continue;
+                    }
+                    // Handle end of string template.
+                    if (char === "}") {
+                        if (exprDepth > 0) {
+                            exprDepth--;
+                        }
+                        fragment += char;
+                        j++;
+                        continue;
+                    }
+
+                    // Handle end of HTML template, only breaking if we're not inside a string template.
+                    if (char === "`" && exprDepth === 0 && (j === 0 || str[j - 1] !== "\\")) {
+                        j++;
+                        break;
+                    }
+
+                    // Handle nested templates.
+                    if ((char === "'" || char === "\"" || char === "`") && exprDepth > 0) {
+                        const quote = char;
+                        fragment += char;
+                        j++;
+                        while (j < str.length) {
+                            fragment += str[j];
+                            if (str[j] === "\\" && j + 1 < str.length) {
+                                j++;
+                                fragment += str[j];
+                                j++;
+                                continue;
+                            }
+                            if (str[j] === quote) {
+                                j++;
+                                break;
+                            }
+                            j++;
+                        }
+                        continue;
+                    }
                     fragment += char;
                     j++;
-                    while (j < str.length) {
-                        fragment += str[j];
-                        if (str[j] === "\\" && j + 1 < str.length) {
-                            j++;
-                            fragment += str[j];
-                            j++;
-                            continue;
-                        }
-                        if (str[j] === quote) {
-                            j++;
-                            break;
-                        }
+                }
+
+                // Recursively extract templates, minify the content, then restore the templates in the minified content.
+                const contentWithPlaceholders = await Minify.#extractAndMinifyTemplates(fragment, placeholders); // eslint-disable-line no-await-in-loop -- This is necessary to ensure that nested templates are properly handled in order.
+                const minified = await Minify.#minifyHtmlWithPlaceholders(contentWithPlaceholders); // eslint-disable-line no-await-in-loop -- This is necessary to ensure that nested templates are properly handled in order.
+                const restored = Minify.#restoreTemplates(minified, placeholders);
+
+                // Store the result as a placeholder.
+                const index = placeholders.length;
+                placeholders.push(restored);
+                result += `__HTMLMIN_PLACEHOLDER_html_${index}__`;
+                i = j;
+            } else {
+                // Extract the string template, handling nested templates and other syntactical edge cases correctly.
+
+                // Use a state machine to ensure the closing brace is not escaped and is the end of the template.
+                let fragment = "${";
+                let depth = 1;
+                let j = start + 2;
+                while (j < str.length && depth > 0) {
+                    const char = str[j];
+
+                    // Handle start of a template.
+                    if (char === "'" || char === "\"" || char === "`") {
+                        const quote = char;
+                        fragment += char;
                         j++;
+                        while (j < str.length) {
+                            fragment += str[j];
+                            if (str[j] === "\\" && j + 1 < str.length) {
+                                j++;
+                                fragment += str[j];
+                                j++;
+                                continue;
+                            }
+                            if (str[j] === quote) {
+                                j++;
+                                break;
+                            }
+                            j++;
+                        }
+                        continue;
                     }
-                    continue;
+
+                    // Handle nested templates.
+                    if (char === "{") {
+                        depth++;
+                    } else if (char === "}") {
+                        depth--;
+                    }
+
+                    fragment += char;
+                    j++;
                 }
-                if (char === "{") {
-                    depth++;
-                } else if (char === "}") {
-                    depth--;
-                }
-                fragment += char;
-                j++;
+
+                // Recursively extract templates, minify the content, then restore the templates in the minified content.
+                const inner = fragment.slice(2, -1);
+                const contentWithPlaceholders = await Minify.#extractAndMinifyTemplates(inner, placeholders); // eslint-disable-line no-await-in-loop -- This is necessary to ensure that nested templates are properly handled in order.
+                const minified = await Minify.#minifyJsWithPlaceholders(contentWithPlaceholders); // eslint-disable-line no-await-in-loop -- This is necessary to ensure that nested templates are properly handled in order.
+                const restored = Minify.#restoreTemplates(minified, placeholders);
+
+                // Store the result as a placeholder.
+                const index = placeholders.length;
+                placeholders.push(restored);
+                result += `__HTMLMIN_PLACEHOLDER_string_${index}__`;
+                i = j;
             }
-
-            const idx = placeholders.length;
-            const inner = fragment.slice(2, -1); // Remove ${ and final }
-
-            const innerPlaceholders = [];
-            const contentWithPlaceholders = await Minify.#extractTemplates(inner, innerPlaceholders); // eslint-disable-line no-await-in-loop -- This is required since the minification must happen in order.
-            const minifiedWithPlaceholders = await Minify.#minifyHtmlWithPlaceholders(contentWithPlaceholders); // eslint-disable-line no-await-in-loop -- This is required since the minification must happen in order.
-            const minifiedInner = Minify.#restoreTemplates(minifiedWithPlaceholders, innerPlaceholders);
-
-            placeholders.push(minifiedInner);
-            result += `__HTMLMIN_PLACEHOLDER_${idx}__`;
-            i = j;
         }
         return result;
     }
@@ -119,17 +214,54 @@ class Minify {
         );
     }
 
+    // MARK: static async #minifyJsWithPlaceholders
+    /**
+     * Minifies JavaScript content with HTML template placeholders.
+     * @param {string} contentWithPlaceholders The JavaScript content with HTML template placeholders.
+     * @param {boolean} [final=false] Whether this is the final minification pass where more aggressive optimizations can be applied.
+     * @returns {Promise<string>} The minified JavaScript with placeholders.
+     */
+    static async #minifyJsWithPlaceholders(contentWithPlaceholders, final) {
+        const minified = await terser.minify(contentWithPlaceholders, {
+            nameCache: Minify.#nameCache,
+            compress: {
+                side_effects: Boolean(final),
+                evaluate: Boolean(final)
+            }
+        });
+        let {code} = minified;
+
+        // If the input doesn't end in a semicolon, but the output does, strip it.
+        if (code && code.endsWith(";") && !contentWithPlaceholders.slice(1, -1).trim().endsWith(";")) {
+            code = code.slice(0, -1);
+        }
+
+        return code;
+    }
+
     // MARK: static #restoreTemplates
     /**
-     * Restores template literals in a string from placeholders.
+     * Restores template in a string from placeholders.
      * @param {string} str The string to restore templates in.
      * @param {string[]} placeholders The array of templates to restore.
      * @returns {string} The string with placeholders replaced by the original templates.
      */
     static #restoreTemplates(str, placeholders) {
-        return str.replace(placeholderMatch, (_substr, _args1, _offset, _str, groups) => {
-            const val = placeholders[Number(groups.index)];
-            return `\${${val}}`;
+        return str.replace(placeholderTypedMatch, (_substr, _type, _index, _offset, _str, groups) => {
+            // Extract the index and type from the placeholder.
+            const index = Number(groups.index);
+
+            /** @type {{type: "html" | "string"}} */
+            const {type} = groups;
+
+            // Get the original template from the placeholders array.
+            const placeholder = placeholders[index];
+
+            // Depending on the type, restore the template with the appropriate syntax.
+            if (type === "html") {
+                return `\`${placeholder}\``;
+            }
+            return `\${${placeholder}}`;
         });
     }
 
@@ -290,6 +422,8 @@ class Minify {
                 fileInfos.push({file, filePath, redirect});
             }
 
+            const placeholders = [];
+
             /** @type {{ [file: string]: string }} */
             let code;
             try {
@@ -302,15 +436,12 @@ class Minify {
                         }
                     }
 
-                    // Use extractTemplates and restoreTemplates on the whole file
-                    const placeholders = [];
-                    const contentWithPlaceholders = await Minify.#extractTemplates(data, placeholders);
-                    const minifiedWithPlaceholders = await Minify.#minifyHtmlWithPlaceholders(contentWithPlaceholders);
-                    const minified = Minify.#restoreTemplates(minifiedWithPlaceholders, placeholders);
+                    // Extract the templates into placeholders and minify them.
+                    const contentWithPlaceholders = await Minify.#extractAndMinifyTemplates(data, placeholders);
 
                     return {
                         file,
-                        data: minified
+                        data: contentWithPlaceholders
                     };
                 }))).reduce((acc, {file, data}) => {
                     acc[file] = data;
@@ -320,13 +451,15 @@ class Minify {
                 return next(err.code === "ENOENT" ? void 0 : err);
             }
 
-            const output = await terser.minify(code, {nameCache: Minify.#nameCache});
+            // Restore the placeholders and aggressively minify the combined code.
+            const restored = Minify.#restoreTemplates(Object.values(code).join("\n"), placeholders);
+            const output = await Minify.#minifyJsWithPlaceholders(restored, true);
 
             if (Minify.#options.caching) {
-                Minify.#options.caching.set(key, output.code);
+                Minify.#options.caching.set(key, output);
             }
 
-            res.status(200).type("js").send(output.code);
+            res.status(200).type("js").send(output);
             return void 0;
         } catch (err) {
             return next(err);
