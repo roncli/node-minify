@@ -264,8 +264,9 @@ class Minify {
         const minified = await terser.minify(contentWithPlaceholders, {
             nameCache: Minify.#nameCache,
             compress: {
-                side_effects: Boolean(final),
-                evaluate: Boolean(final)
+                booleans: Boolean(final),
+                evaluate: Boolean(final),
+                side_effects: Boolean(final)
             },
             ...final ? {} : {mangle: false}
         });

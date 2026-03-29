@@ -263,12 +263,12 @@ describe("Minify", () => {
             const app = Express();
             app.get("/js", Minify.jsHandler);
 
-            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<div>${foo + /* html */`<span>${bar}</span>`}</div>`);"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
+            jest.spyOn(fs, "readFile").mockResolvedValue("console.log(/* html */`<div>${foo + /* html */`<span style=\"color:${2 < 1 ? \"red\" : \"green\"}\">${bar}</span>`}</div>`);"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
 
             const res = await request(app).get("/js").query({files: "/script.js"});
             expect(res.status).toBe(200);
             expect(["application/javascript", "text/javascript"]).toContain(res.type);
-            expect(res.text).toContain("console.log(`<div>${foo+`<span>${bar}</span>`}</div>`)"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
+            expect(res.text).toContain("console.log(`<div>${foo+`<span style=color:green>${bar}</span>`}</div>`)"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
         });
 
         test("should return minified HTML and JS inside nested template strings with strings containing special characters", async () => {
