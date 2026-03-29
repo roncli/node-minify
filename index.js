@@ -222,14 +222,21 @@ class Minify {
      * @returns {Promise<string>} The minified JavaScript with placeholders.
      */
     static async #minifyJsWithPlaceholders(contentWithPlaceholders, final) {
+        if (!final) {
+            contentWithPlaceholders = contentWithPlaceholders.replaceAll(".#", "__DOT__HASH__");
+        }
         const minified = await terser.minify(contentWithPlaceholders, {
             nameCache: Minify.#nameCache,
             compress: {
                 side_effects: Boolean(final),
                 evaluate: Boolean(final)
-            }
+            },
+            ...final ? {} : {mangle: false}
         });
         let {code} = minified;
+        if (!final) {
+            code = code.replaceAll("__DOT__HASH__", ".#");
+        }
 
         // If the input doesn't end in a semicolon, but the output does, strip it.
         if (code && code.endsWith(";") && !contentWithPlaceholders.slice(1, -1).trim().endsWith(";")) {
