@@ -9,10 +9,17 @@
         "moduleResolution": "nodenext",
         "outDir": "./.vscode/ts",
         "resolveJsonModule": true,
-        "target": "es2022"
+        "strict": false,
+        "strictBindCallApply": true,
+        "strictBuiltinIteratorReturn": true,
+        "strictFunctionTypes": true,
+        "strictPropertyInitialization": false,
+        "target": "es2022",
+        "useUnknownInCatchVariables": false
     },
     "include": [
-        "**/*.d.ts",
+        "types/**/*.d.ts",
+        "node_modules/@types/**/*.d.ts",
         "**/*.js"
     ]
 }
