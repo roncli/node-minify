@@ -233,6 +233,7 @@ class Minify {
         return await HtmlMinifierTerser.minify(
             contentWithPlaceholders,
             {
+                caseSensitive: true,
                 collapseBooleanAttributes: true,
                 collapseWhitespace: true,
                 conservativeCollapse: true,

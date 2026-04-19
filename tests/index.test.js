@@ -294,6 +294,24 @@ describe("Minify", () => {
             expect(["application/javascript", "text/javascript"]).toContain(res.type);
             expect(res.text).toContain("console.log(`<div>${foo+`<span>Test</span><style>h1{color:${color}}</style>`}</div>`)"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
         });
+
+        test("complex nesting should work", async () => {
+            const app = Express();
+            app.get("/js", Minify.jsHandler);
+
+            jest.spyOn(fs, "readFile").mockResolvedValue(`
+                this.divEl.innerHTML = /* html */\`
+                    <input type="text" value="\${ComboboxComponent.Encoding.attributeEncode(this.value)}"\${this.required ? " required" : ""} />
+                    <button type="button">&#x25BC;</button>
+                    \${filtered.length > 0 && this.value ? /* html */\`<ul tabindex="-1">\${ComboboxComponent.getListItems(filtered)}</ul>\` : ""}
+                \`;
+            `);
+
+            const res = await request(app).get("/js").query({files: "/script.js"});
+            expect(res.status).toBe(200);
+            expect(["application/javascript", "text/javascript"]).toContain(res.type);
+            expect(res.text).toContain("this.divEl.innerHTML=` <input value=${ComboboxComponent.Encoding.attributeEncode(this.value)} ${this.required?\" required\":\"\"}> <button type=button>▼</button> ${filtered.length>0&&this.value?`<ul tabindex=-1>${ComboboxComponent.getListItems(filtered)}</ul>`:\"\"} `;"); // eslint-disable-line no-template-curly-in-string -- This is intentional for testing purposes.
+        });
     });
 
     // MARK: Null Setup
