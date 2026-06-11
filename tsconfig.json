@@ -13,13 +13,11 @@
         "strictBindCallApply": true,
         "strictBuiltinIteratorReturn": true,
         "strictFunctionTypes": true,
-        "strictPropertyInitialization": false,
         "target": "es2022",
-        "useUnknownInCatchVariables": false
+        "types": ["*"]
     },
     "include": [
-        "types/**/*.d.ts",
-        "node_modules/@types/**/*.d.ts",
+        "**/*.d.ts",
         "**/*.js"
     ]
 }
