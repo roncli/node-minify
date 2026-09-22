@@ -34,7 +34,7 @@
         "express": "5.2.1",
         "eslint-plugin-jsdoc": "64.5.4",
         "globals": "17.12.0",
-        "jest": "30.5.1",
+        "jest": "30.5.2",
         "supertest": "7.2.2"
     },
     "engines": {
